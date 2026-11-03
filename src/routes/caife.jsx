@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSite } from "@/lib/i18n";
+import { useLang, useSite } from "@/lib/i18n";
 import PageShell from "@/components/PageShell";
 
 export const Route = createFileRoute("/caife")({
