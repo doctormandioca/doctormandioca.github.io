@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const BandcampPlayerContext = createContext(null);
 
@@ -12,8 +13,8 @@ const embedUrl = (track) =>
 /**
  * Owns exactly one Bandcamp iframe for the lifetime of the app.
  * Route-level player slots only tell this provider where the iframe should sit.
- * When a route unmounts, the iframe is kept alive in a tiny off-screen-free
- * docked state, so client-side navigation does not destroy Bandcamp playback.
+ * When a route unmounts, the iframe is kept alive in a tiny docked state so
+ * client-side navigation does not destroy Bandcamp playback.
  */
 export default function BandcampPlayerProvider({ children }) {
   const [track, setTrack] = useState(null);
@@ -59,26 +60,24 @@ export default function BandcampPlayerProvider({ children }) {
         linkColor: options.linkColor || "9a9a9a",
         transparent: options.transparent !== false,
       };
-      slotRef.current = element;
 
-      // Reattaching the same album to a different page slot must not update
-      // the iframe src. Changing even its display options reloads Bandcamp and
-      // interrupts the current session, so preserve the existing player by ID.
+      slotRef.current = element;
+      // Reattaching the same album must not change iframe src: doing so restarts
+      // Bandcamp playback when a route reuses or repositions the player slot.
       setTrack((current) =>
-        current?.albumId === nextTrack.albumId ? current : nextTrack
+        current?.albumId === nextTrack.albumId ? current : nextTrack,
       );
       setDocked(false);
       measure();
 
       return () => {
-        // An old slot's cleanup must not dock a newer slot that has already mounted.
         if (slotRef.current !== element) return;
         slotRef.current = null;
         setBox(null);
         setDocked(true);
       };
     },
-    [measure]
+    [measure],
   );
 
   const stop = useCallback(() => {
@@ -93,7 +92,6 @@ export default function BandcampPlayerProvider({ children }) {
 
     const update = () => measure();
     window.addEventListener("resize", update);
-    // Capture scroll events from nested scrollers as well as the document.
     window.addEventListener("scroll", update, true);
 
     let observer;
@@ -120,7 +118,10 @@ export default function BandcampPlayerProvider({ children }) {
 }
 
 function PlayerLayer({ track, docked, box, onStop }) {
-  if (!track) return null;
+  // The iframe must be a sibling of Radix's dialog portal in document.body.
+  // Otherwise a stacking context on the app root can trap z-index: 60 below
+  // the dialog overlay, making the Bandcamp player appear missing on the live site.
+  if (!track || typeof document === "undefined" || !document.body) return null;
 
   const inline = !docked && Boolean(box);
   const iframeStyle = inline
@@ -134,7 +135,6 @@ function PlayerLayer({ track, docked, box, onStop }) {
         border: 0,
       }
     : {
-        // Keep the same iframe DOM node alive while it is not shown in a page slot.
         position: "fixed",
         top: "0px",
         left: "0px",
@@ -145,7 +145,7 @@ function PlayerLayer({ track, docked, box, onStop }) {
         border: 0,
       };
 
-  return (
+  return createPortal(
     <>
       <iframe
         title={track.title}
@@ -156,23 +156,22 @@ function PlayerLayer({ track, docked, box, onStop }) {
         aria-hidden={inline ? undefined : true}
         tabIndex={inline ? 0 : -1}
       />
-
       {!inline ? (
-        <div className="hairline fixed bottom-4 right-4 z-[70] flex max-w-[calc(100vw-2rem)] items-center gap-3 border bg-background px-3 py-2 shadow-sm">
-          <span className="max-w-[min(18rem,60vw)] truncate font-mono text-[10px] uppercase tracking-[0.16em]">
+        <div className="hairline fixed bottom-4 right-4 z-[70] flex items-center gap-3 border border-white/15 bg-black/90 px-4 py-3 text-white shadow-xl">
+          <span className="text-[10px] uppercase tracking-[0.18em]">
             ▶ {track.title}
           </span>
           <button
             type="button"
             onClick={onStop}
             aria-label="Stop Bandcamp playback"
-            title="Stop playback"
-            className="shrink-0 font-mono text-[13px] leading-none text-muted-foreground transition-colors hover:text-foreground"
+            className="text-white/60 transition-colors hover:text-white"
           >
             ×
           </button>
         </div>
       ) : null}
-    </>
+    </>,
+    document.body,
   );
 }
