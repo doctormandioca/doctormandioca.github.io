@@ -1,0 +1,17 @@
+Bandcamp selection / navigation fix
+
+Replace these three files in your local website repository, preserving folders:
+
+src/components/text/BandcampPlayerSlot.jsx
+src/components/text/BandcampPlayerProvider.jsx
+src/components/quixosis/ReleaseDialog.jsx
+
+Then commit and Push origin in GitHub Desktop.
+
+Behavior:
+- Selecting an album opens its release dialog without automatically reloading Bandcamp.
+- The dialog shows either Load Bandcamp player or Show current Bandcamp player.
+- Switching to another album resets the per-album load state.
+- Reattaching the same album preserves the existing iframe (and its playback session), even if display options differ.
+- The iframe is layered above the dialog's overlay/content slot.
+- The Bandcamp iframe URL ends in # to avoid the embedded player's extra-history/back-button issue.

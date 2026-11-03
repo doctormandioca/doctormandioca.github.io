@@ -11,19 +11,22 @@ export default function BandcampPlayerSlot({
   linkColor = "9a9a9a",
   transparent = true,
   className = "",
-  autoAttach = true,
 }) {
   const site = useSite();
   const player = useBandcampPlayer();
   const mount = player?.mount;
   const slotRef = useRef(null);
   const normalizedAlbumId = albumId == null ? "" : String(albumId);
-  const matchesCurrentPlayer =
-    player?.track?.albumId === normalizedAlbumId &&
-    player?.track?.tracklist === tracklist &&
-    player?.track?.linkColor === linkColor &&
-    player?.track?.transparent === transparent;
-  const [requested, setRequested] = useState(() => Boolean(autoAttach && normalizedAlbumId && matchesCurrentPlayer));
+
+  // A route/dialog may reuse this component instance for a different album.
+  // Store the requested album alongside the flag so a previous selection can
+  // never cause the next album to initialize its Bandcamp iframe automatically.
+  const [request, setRequest] = useState({ albumId: "", active: false });
+  const requested = request.active && request.albumId === normalizedAlbumId;
+
+  // A matching album means the already-running iframe can be reattached as-is.
+  // Display options are intentionally ignored so navigation never reloads it.
+  const matchesCurrentPlayer = player?.track?.albumId === normalizedAlbumId;
 
   useEffect(() => {
     if (!requested || !normalizedAlbumId || !mount || !slotRef.current) return undefined;
@@ -43,10 +46,12 @@ export default function BandcampPlayerSlot({
       ) : (
         <button
           type="button"
-          onClick={() => setRequested(true)}
+          onClick={() => setRequest({ albumId: normalizedAlbumId, active: true })}
           className="hairline inline-flex items-center gap-3 border px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors hover:bg-foreground hover:text-background"
         >
-          {site.lang === "es" ? "Cargar reproductor de Bandcamp" : "Load Bandcamp player"}
+          {matchesCurrentPlayer
+            ? (site.lang === "es" ? "Mostrar reproductor actual" : "Show current Bandcamp player")
+            : (site.lang === "es" ? "Cargar reproductor de Bandcamp" : "Load Bandcamp player")}
         </button>
       )}
     </div>

@@ -7,7 +7,7 @@ export function useBandcampPlayer() {
 }
 
 const embedUrl = (track) =>
-  `https://bandcamp.com/EmbeddedPlayer/album=${encodeURIComponent(String(track.albumId))}/size=large/bgcol=0f0f0f/linkcol=${track.linkColor}/tracklist=${track.tracklist ? "true" : "false"}/artwork=large/${track.transparent ? "transparent=true/" : ""}`;
+  `https://bandcamp.com/EmbeddedPlayer/album=${encodeURIComponent(String(track.albumId))}/size=large/bgcol=0f0f0f/linkcol=${track.linkColor}/tracklist=${track.tracklist ? "true" : "false"}/artwork=large/${track.transparent ? "transparent=true/" : ""}#`;
 
 /**
  * Owns exactly one Bandcamp iframe for the lifetime of the app.
@@ -61,18 +61,12 @@ export default function BandcampPlayerProvider({ children }) {
       };
       slotRef.current = element;
 
-      setTrack((current) => {
-        if (
-          current?.albumId === nextTrack.albumId &&
-          current?.title === nextTrack.title &&
-          current?.tracklist === nextTrack.tracklist &&
-          current?.linkColor === nextTrack.linkColor &&
-          current?.transparent === nextTrack.transparent
-        ) {
-          return current;
-        }
-        return nextTrack;
-      });
+      // Reattaching the same album to a different page slot must not update
+      // the iframe src. Changing even its display options reloads Bandcamp and
+      // interrupts the current session, so preserve the existing player by ID.
+      setTrack((current) =>
+        current?.albumId === nextTrack.albumId ? current : nextTrack
+      );
       setDocked(false);
       measure();
 
@@ -136,8 +130,6 @@ function PlayerLayer({ track, docked, box, onStop }) {
         left: `${box.left}px`,
         width: `${box.width}px`,
         height: `${box.height}px`,
-        // The player is portaled outside the Radix dialog content. Keep it
-        // above the dialog overlay/content so it remains visible in the popup.
         zIndex: 60,
         border: 0,
       }
