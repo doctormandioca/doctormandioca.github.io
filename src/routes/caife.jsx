@@ -45,7 +45,7 @@ function CaifePage() {
           {caife.description}
         </p>
         <a
-          href={caife.href}
+          href={storyUrl}
           target="_blank"
           rel="noreferrer"
           className="mt-10 inline-flex items-center border border-foreground px-5 py-3 font-mono text-[10px] uppercase tracking-[0.22em] transition-colors duration-200 hover:bg-foreground hover:text-background"
