@@ -18,6 +18,8 @@ export const Route = createFileRoute("/caife")({
 function CaifePage() {
   const site = useSite();
   const caife = site.caife;
+  const { lang } = useLang();
+  const storyUrl = `https://www.caifecaifecaife.com/?lang=${lang}`;
 
   return (
     <PageShell section={site.ui.sections.caife}>
