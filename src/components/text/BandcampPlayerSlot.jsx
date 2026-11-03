@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { useSite } from "@/lib/i18n";
-import { useBandcampPlayer } from "@/components/text/BandcampPlayerProvider";
-
-/** A page-sized placeholder controlled by the one persistent app-level iframe. */
+/**
+ * Render Bandcamp's official embed directly in the release dialog.
+ *
+ * The former implementation moved an iframe around the document using fixed
+ * positioning, a portal and ResizeObserver measurements. That is unnecessary
+ * for an embedded player and can leave it detached from the dialog. Keeping the
+ * iframe in normal document flow avoids that positioning/layering failure.
+ */
 export default function BandcampPlayerSlot({
   albumId,
   title,
@@ -12,48 +15,47 @@ export default function BandcampPlayerSlot({
   transparent = true,
   className = "",
 }) {
-  const site = useSite();
-  const player = useBandcampPlayer();
-  const mount = player?.mount;
-  const slotRef = useRef(null);
-  const normalizedAlbumId = albumId == null ? "" : String(albumId);
+  const normalizedAlbumId = albumId == null ? "" : String(albumId).trim();
 
-  // A route/dialog may reuse this component instance for a different album.
-  // Store the requested album alongside the flag so a previous selection can
-  // never cause the next album to initialize its Bandcamp iframe automatically.
-  const [request, setRequest] = useState({ albumId: "", active: false });
-  const requested = request.active && request.albumId === normalizedAlbumId;
+  // Bandcamp album IDs are numeric. Do not create a broken embed URL.
+  if (!/^\d+$/.test(normalizedAlbumId)) {
+    if (normalizedAlbumId) {
+      console.warn("[Bandcamp] Invalid album ID:", normalizedAlbumId);
+    }
+    return (
+      <p role="status" className="meta py-4">
+        Bandcamp player unavailable: invalid album ID.
+      </p>
+    );
+  }
 
-  // A matching album means the already-running iframe can be reattached as-is.
-  // Display options are intentionally ignored so navigation never reloads it.
-  const matchesCurrentPlayer = player?.track?.albumId === normalizedAlbumId;
-
-  useEffect(() => {
-    if (!requested || !normalizedAlbumId || !mount || !slotRef.current) return undefined;
-    return mount(normalizedAlbumId, title, slotRef.current, { tracklist, linkColor, transparent });
-  }, [requested, normalizedAlbumId, title, mount, tracklist, linkColor, transparent]);
-
-  if (!normalizedAlbumId) return null;
+  const safeLinkColor = /^[0-9a-fA-F]{6}$/.test(linkColor)
+    ? linkColor
+    : "9a9a9a";
+  const embedUrl =
+    `https://bandcamp.com/EmbeddedPlayer/album=${normalizedAlbumId}` +
+    `/size=large/bgcol=0f0f0f/linkcol=${safeLinkColor}` +
+    `/tracklist=${tracklist ? "true" : "false"}/artwork=large/` +
+    `${transparent ? "transparent=true/" : ""}#`;
 
   return (
     <div className={className}>
-      {requested ? (
-        <div
-          ref={slotRef}
-          style={{ height: `${height}px`, minHeight: `${height}px` }}
-          aria-label={`${title || "Bandcamp"} player`}
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setRequest({ albumId: normalizedAlbumId, active: true })}
-          className="hairline inline-flex items-center gap-3 border px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors hover:bg-foreground hover:text-background"
-        >
-          {matchesCurrentPlayer
-            ? (site.lang === "es" ? "Mostrar reproductor actual" : "Show current Bandcamp player")
-            : (site.lang === "es" ? "Cargar reproductor de Bandcamp" : "Load Bandcamp player")}
-        </button>
-      )}
+      <iframe
+        title={`${title || "Bandcamp"} — Bandcamp player`}
+        src={embedUrl}
+        width="100%"
+        height={height}
+        style={{
+          display: "block",
+          width: "100%",
+          height: `${height}px`,
+          border: 0,
+          background: "#0f0f0f",
+        }}
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        loading="eager"
+        allowFullScreen
+      />
     </div>
   );
 }

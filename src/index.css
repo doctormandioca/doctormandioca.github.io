@@ -81,6 +81,28 @@
   .meta {
     @apply font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground;
   }
+
+  /* Keep the line-art hover effect on mouse/trackpad devices. Touch browsers
+     can otherwise leave :hover active after a tap, making a release look stuck. */
+  .release-card-trigger:focus-visible {
+    outline: 2px solid hsl(var(--highlight));
+    outline-offset: -2px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .release-card-trigger:hover {
+      background-color: hsl(var(--foreground));
+      color: hsl(var(--background));
+    }
+
+    .release-card-trigger:hover .release-card-line-art {
+      opacity: 0;
+    }
+
+    .release-card-trigger:hover .release-card-meta {
+      color: hsl(var(--background) / 0.6);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

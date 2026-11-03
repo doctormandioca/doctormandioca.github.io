@@ -49,33 +49,34 @@ function AmbienPage() {
             type="button"
             data-release-trigger
             onClick={() => showRelease(release)}
-            className="group hairline flex flex-col gap-4 border-b border-r p-4 text-left transition-colors duration-300 hover:bg-foreground hover:text-background"
+            className="release-card-trigger hairline flex flex-col gap-4 border-b border-r p-4 text-left transition-colors duration-300"
           >
             <div className="relative aspect-square w-full">
               <Image
                 src={release.cover}
                 alt={release.title}
                 fittingType="fill"
-                className="absolute inset-0 h-full w-full"
+                className="pointer-events-none absolute inset-0 h-full w-full"
               />
               <Image
                 src={release.lineArt}
                 alt=""
                 aria-hidden="true"
                 fittingType="fill"
-                className="absolute inset-0 h-full w-full transition-opacity duration-500 group-hover:opacity-0"
+                className="release-card-line-art pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-500"
               />
             </div>
+
             <div className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-heading text-base font-light leading-tight tracking-[-0.02em]">
                   {release.title}
                 </h2>
-                <span className="meta shrink-0 transition-colors duration-300 group-hover:text-background/60">
+                <span className="release-card-meta meta shrink-0 transition-colors duration-300">
                   {release.year}
                 </span>
               </div>
-              <p className="meta transition-colors duration-300 group-hover:text-background/60">
+              <p className="release-card-meta meta transition-colors duration-300">
                 {release.credit}
               </p>
             </div>
